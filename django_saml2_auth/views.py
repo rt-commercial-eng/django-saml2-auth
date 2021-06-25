@@ -22,7 +22,7 @@ from django.template import TemplateDoesNotExist
 from django.http import HttpResponseRedirect
 from django.utils.http import is_safe_url
 
-from rest_auth.utils import jwt_encode
+from rest_framework_simplejwt.tokens import RefreshToken
 
 
 # default User or custom User. Now both will work.
@@ -180,12 +180,12 @@ def acs(r):
     is_new_user = False
 
     try:
-        target_user = User.objects.get(username=user_name)
+        target_user = User.objects.get(email=user_email)
         if settings.SAML2_AUTH.get('TRIGGER', {}).get('BEFORE_LOGIN', None):
             import_string(settings.SAML2_AUTH['TRIGGER']['BEFORE_LOGIN'])(user_identity)
     except User.DoesNotExist:
         new_user_should_be_created = settings.SAML2_AUTH.get('CREATE_USER', True)
-        if new_user_should_be_created: 
+        if new_user_should_be_created:
             target_user = _create_new_user(user_name, user_email, user_first_name, user_last_name)
             if settings.SAML2_AUTH.get('TRIGGER', {}).get('CREATE_USER', None):
                 import_string(settings.SAML2_AUTH['TRIGGER']['CREATE_USER'])(user_identity)
@@ -202,14 +202,13 @@ def acs(r):
         return HttpResponseRedirect(get_reverse([denied, 'denied', 'django_saml2_auth:denied']))
 
     if settings.SAML2_AUTH.get('USE_JWT') is True:
-        # We use JWT auth send token to frontend
-        jwt_token = jwt_encode(target_user)
-        query = '?uid={}&token={}'.format(target_user.id, jwt_token)
+        refresh = RefreshToken.for_user(target_user)
+        query_params = '?uid={0}&accessToken={1}&refreshToken={2}'.format(target_user.id, str(refresh.access_token), str(refresh))
 
         frontend_url = settings.SAML2_AUTH.get(
             'FRONTEND_URL', next_url)
 
-        return HttpResponseRedirect(frontend_url+query)
+        return HttpResponseRedirect(frontend_url + query_params)
 
     if is_new_user:
         try:
