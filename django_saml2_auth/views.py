@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 
-
+import logging
 from saml2 import (
     BINDING_HTTP_POST,
     BINDING_HTTP_REDIRECT,
@@ -23,6 +23,11 @@ from django.http import HttpResponseRedirect
 from django.utils.http import is_safe_url
 
 from rest_framework_simplejwt.tokens import RefreshToken
+
+
+logging.basicConfig()
+LOGGER = logging.getLogger()
+LOGGER.setLevel(logging.INFO)
 
 
 # default User or custom User. Now both will work.
@@ -166,6 +171,8 @@ def acs(r):
         resp, entity.BINDING_HTTP_POST)
     if authn_response is None:
         return HttpResponseRedirect(get_reverse([denied, 'denied', 'django_saml2_auth:denied']))
+
+    LOGGER.info("SAML auth response:\n{0}".format(resp))
 
     user_identity = authn_response.get_identity()
     if user_identity is None:
