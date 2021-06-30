@@ -146,7 +146,7 @@ def _create_new_user(username, email, firstname, lastname):
     user = User.objects.create_user(username, email)
     user.first_name = firstname
     user.last_name = lastname
-    user.full_name = firstname + lastname
+    user.full_name = firstname + " " + lastname
     groups = [Group.objects.get(name=x) for x in settings.SAML2_AUTH.get('NEW_USER_PROFILE', {}).get('USER_GROUPS', [])]
     if parse_version(get_version()) >= parse_version('2.0'):
         user.groups.set(groups)
